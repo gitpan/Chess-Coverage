@@ -1,0 +1,13 @@
+CVS/.*
+svn/.*
+^\.
+\.bak$
+\.tar$
+\.tgz$
+\.tar\.gz$
+^tmp/
+^blib/
+^Makefile$
+^Makefile\.[a-z]+$
+^pm_to_blib$
+~$

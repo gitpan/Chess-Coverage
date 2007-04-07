@@ -1,0 +1,7 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Chess::Coverage;
+my $g = Chess::Coverage->new();
+my $c = $g->coverage();
+use Data::Dumper;$Data::Dumper::Sortkeys=1;die Dumper($c);

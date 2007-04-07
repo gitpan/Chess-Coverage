@@ -1,0 +1,10 @@
+Changes file for Chess::Coverage
+
+0.00_2 2007.04.07
+    - Lifted the "line_is_open" and "move_is_legal" functions of the
+      Chess module and modified them, ever so slightly, for coverage
+      analysis.
+
+0.00_1 2007.03.10
+    - Began the de-crustification, simplification, cleanup, rewrite of
+      the old Games::Chess::Coverage packages.
