@@ -1,7 +1,7 @@
-# $Id: Coverage.pm,v 1.29 2007/04/07 22:59:02 gene Exp $
+# $Id: Coverage.pm,v 1.30 2007/04/07 23:15:34 gene Exp $
 
 package Chess::Coverage;
-our $VERSION = '0.00_2';
+our $VERSION = '0.00_3';
 use strict;
 use warnings;
 use Carp;
@@ -16,7 +16,7 @@ sub coverage {
         my $square = $piece->get_current_square();
         my $player = $piece->get_player();
 
-        $cover->{$square}{occupant} = whoami( $piece );
+        $cover->{$square}{occupant} = _whoami( $piece );
 
         my @reachable = $piece->reachable_squares();
         for my $i ( @reachable ) {
@@ -34,7 +34,7 @@ sub coverage {
                         push @{ $cover->{$square}{can_move_to} }, $i;
                     }
                     push @{ $cover->{$square}{msg} },
-                        whoami( $p ) .' - '. $self->get_message();
+                        _whoami( $p ) .' - '. $self->get_message();
                 }
             }
         }
