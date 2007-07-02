@@ -1,50 +1,70 @@
-# $Id: Coverage.pm,v 1.30 2007/04/07 23:15:34 gene Exp $
+# $Id: Coverage.pm,v 1.31 2007/07/02 20:01:42 gene Exp $
 
 package Chess::Coverage;
-our $VERSION = '0.00_3';
+our $VERSION = '0.00_4';
 use strict;
 use warnings;
 use Carp;
 use base 'Chess::Game';
 
+#sub new {
+#    my $class = ref( $proto ) || $proto;
+#    my $self = $proto->SUPER::new();
+#    bless $self, $class;
+#    return $self;
+#}
+
 sub coverage {
-    my $self = shift;
-    my $board = $self->get_board();
+    my($self, %args) = @_;
+
     my $cover = {};
 
-    for my $piece ( @{ $self->get_pieces() } ) {
-        my $square = $piece->get_current_square();
-        my $player = $piece->get_player();
+    my $board = $self->get_board();
 
-        $cover->{$square}{occupant} = _whoami( $piece );
+#    $self->_iterate_moves(%args) if $args{pgn};
 
-        my @reachable = $piece->reachable_squares();
-        for my $i ( @reachable ) {
-            if( $self->_move_allowed( $square, $i ) ) {
-                push @{ $cover->{$square}{can_move_to} }, $i;
-            }
-            else {
-                my $p = $board->get_piece_at( $i ) || next;
-                if( $self->_line_of_sight( $square, $i ) ) {
-                    if( $p->get_player() eq $player ) {
-                        push @{ $cover->{$square}{protects} }, $i;
+    for my $color ($self->get_pieces()) {
+        for my $piece (@$color) {
+            my $square = $piece->get_current_square();
+
+            $cover->{$square}{occupant} = _who_is($piece);
+
+            my @reachable = $piece->reachable_squares();
+
+            for my $i ( @reachable ) {
+                if( $self->_is_move_legal($square, $i) ) {
+                    push @{ $cover->{$square}{can_move_to} }, $i;
+                }
+                else {
+                    my $p = $board->get_piece_at($i) || next;
+
+                    if( $self->_line_is_open($square, $i) ) {
+                        if( $p->get_player() eq $piece->get_player() ) {
+                            push @{ $cover->{$square}{protects} }, $i;
+                        }
+                        else {
+                            push @{ $cover->{$square}{threatens} }, $i;
+                            push @{ $cover->{$square}{can_move_to} }, $i;
+                        }
+#                        push @{ $cover->{$square}{msg} },
+#                            _who_is( $p ) .' - '. $self->get_message();
                     }
-                    else {
-                        push @{ $cover->{$square}{threatens} }, $i;
-                        push @{ $cover->{$square}{can_move_to} }, $i;
-                    }
-                    push @{ $cover->{$square}{msg} },
-                        _whoami( $p ) .' - '. $self->get_message();
                 }
             }
         }
     }
-
     return $cover;
 }
 
-sub _line_of_sight {
-    # Lifted from Chess::Board to return 1 for adjacent pieces.
+sub _iterate_moves {
+    my( $self, %args ) = @_;
+    if( $args{pgn} ) {
+die"PGN: $args{pgn}\n";
+    }
+}
+
+sub _line_is_open {
+    # Lifted from Chess::Board::line_is_open() to return 1 for adjacent pieces.
     my ($self, $sq1, $sq2) = @_;
 
     unless(Chess::Board->square_is_valid($sq1)) {
@@ -91,18 +111,16 @@ sub _line_of_sight {
     return 1;
 }
 
-sub _move_allowed {
-    # Lifted from Chess::Game to ignore the "alternating turn" check.
-    # XXX Not sure how to do all this legality checking, e.g. with
-    # XXX a flag or resetting a value or something, so I copy-pasted:
+sub _is_move_legal {
+    # XXX Lifted from Chess::Game::is_move_legal() to ignore the "alternating turn" check.  I am not sure how to do all this legality checking, e.g. with a flag or resetting a value or something yet...
     my ($self, $sq1, $sq2) = @_;
     unless (Chess::Board->square_is_valid($sq1)) {
-    carp "Invalid square '$sq1'";
-    return 0;
+        carp "Invalid square '$sq1'";
+        return 0;
     }
     unless (Chess::Board->square_is_valid($sq2)) {
-    carp "Invalid square '$sq2'";
-    return 0;
+        carp "Invalid square '$sq2'";
+        return 0;
     }
     croak "Invalid Chess::Game reference" unless (ref($self));
     my $obj_data = Chess::Game::_get_game($$self);
@@ -112,11 +130,11 @@ sub _move_allowed {
     my $board = $obj_data->{board};
     my $piece = $board->get_piece_at($sq1);
     unless (defined($piece)) {
-    carp "No piece at '$sq1'";
-    return undef;
+        carp "No piece at '$sq1'";
+        return undef;
     }
     my $player = $piece->get_player();
-# GB 2007.04.07 - Ignore whose turn it is for coverage analysis.
+# GB 2007.04.07 - Ignore turn checking for coverage analysis.
 #    my $movelist = $obj_data->{movelist};
 #    my $last_moved = $movelist->get_last_moved();
 #    if ((defined($last_moved) and $last_moved eq $player) or
@@ -127,116 +145,114 @@ sub _move_allowed {
     return 0 unless ($piece->can_reach($sq2));
     my $capture = $board->get_piece_at($sq2);
     if (defined($capture)) {
-    unless ($capture->get_player() ne $player) {
-        $obj_data->{message} = "You can't capture your own piece";
-        return 0;
-    }
-    if ($piece->isa('Chess::Piece::Pawn')) {
-        unless (abs(Chess::Board->horz_distance($sq1, $sq2)) == 1) {
-        $obj_data->{message} = "Pawns may only capture diagonally";
-        return 0;
+        unless ($capture->get_player() ne $player) {
+            $obj_data->{message} = "You can't capture your own piece";
+            return 0;
         }
-    }
-    elsif ($piece->isa('Chess::Piece::King')) {
-        unless (abs(Chess::Board->horz_distance($sq1, $sq2)) < 2) {
-        $obj_data->{message} = "You can't capture while castling";
-        return 0;
+        if ($piece->isa('Chess::Piece::Pawn')) {
+            unless (abs(Chess::Board->horz_distance($sq1, $sq2)) == 1) {
+                $obj_data->{message} = "Pawns may only capture diagonally";
+                return 0;
+            }
         }
-    }
+        elsif ($piece->isa('Chess::Piece::King')) {
+            unless (abs(Chess::Board->horz_distance($sq1, $sq2)) < 2) {
+                $obj_data->{message} = "You can't capture while castling";
+                return 0;
+            }
+        }
     }
     else {
-    if ($piece->isa('Chess::Piece::Pawn')) {
-        my $ml = $obj_data->{movelist};
-        unless (Chess::Board->horz_distance($sq1, $sq2) == 0 or
-                Chess::Game::_is_valid_en_passant($obj_data, $piece, $sq1, $sq2)) {
-        $obj_data->{message} = "Pawns must capture on a diagonal move";
-        return 0;
+        if ($piece->isa('Chess::Piece::Pawn')) {
+            my $ml = $obj_data->{movelist};
+            unless (Chess::Board->horz_distance($sq1, $sq2) == 0 or
+                    Chess::Game::_is_valid_en_passant($obj_data, $piece, $sq1, $sq2)) {
+                $obj_data->{message} = "Pawns must capture on a diagonal move";
+                return 0;
+            }
         }
-    }
     }
     my $valid_castle = 0;
     my $clone = $self->clone();
     my $r_clone = Chess::Game::_get_game($$clone);
     my $king = $r_clone->{_kings}[($player eq $player1 ? 0 : 1)];
     if ($piece->isa('Chess::Piece::King')) {
-    my $hdist = Chess::Board->horz_distance($sq1, $sq2);
-    if (abs($hdist) == 2) {
-        _mark_threatened_kings($r_clone);
-        unless (!$king->threatened()) {
-        $obj_data->{message} = "Can't castle out of check";
-        return 0;
+        my $hdist = Chess::Board->horz_distance($sq1, $sq2);
+        if (abs($hdist) == 2) {
+            _mark_threatened_kings($r_clone);
+            unless (!$king->threatened()) {
+                $obj_data->{message} = "Can't castle out of check";
+                return 0;
+            }
+            if ($hdist > 0) {
+                return 0 unless (_is_valid_short_castle($obj_data, $piece, $sq1, $sq2));
+                $valid_castle = Chess::Game::MOVE_CASTLE_SHORT;
+            }
+            else {
+                return 0 unless (_is_valid_long_castle($obj_data, $piece, $sq1, $sq2));
+                $valid_castle = Chess::Game::MOVE_CASTLE_LONG;
+            }
         }
-        if ($hdist > 0) {
-        return 0 unless (_is_valid_short_castle($obj_data, $piece, $sq1, $sq2));
-        $valid_castle = Chess::Game::MOVE_CASTLE_SHORT;
-        }
-        else {
-        return 0 unless (_is_valid_long_castle($obj_data, $piece, $sq1, $sq2));
-        $valid_castle = Chess::Game::MOVE_CASTLE_LONG;
-        }
-    }
     }
     elsif (!$piece->isa('Chess::Piece::Knight')) {
-    my $board_c = $board->clone();
-    $board_c->set_piece_at($sq1, undef);
-    $board_c->set_piece_at($sq2, undef);
-    unless ($board_c->line_is_open($sq1, $sq2)) {
-        $obj_data->{message} = "Line '$sq1' - '$sq2' is blocked";
-        return 0;
-    }
+        my $board_c = $board->clone();
+        $board_c->set_piece_at($sq1, undef);
+        $board_c->set_piece_at($sq2, undef);
+        unless ($board_c->line_is_open($sq1, $sq2)) {
+            $obj_data->{message} = "Line '$sq1' - '$sq2' is blocked";
+            return 0;
+        }
     }
     if (!$valid_castle) {
-    $clone->make_move($sq1, $sq2, 0);
-    Chess::Game::_mark_threatened_kings($r_clone);
-    unless (!$king->threatened()) {
-        $obj_data->{message} = "Move leaves your king in check";
-        return 0;
-    }
+        $clone->make_move($sq1, $sq2, 0);
+        Chess::Game::_mark_threatened_kings($r_clone);
+        unless (!$king->threatened()) {
+            $obj_data->{message} = "Move leaves your king in check";
+            return 0;
+        }
     }
     else {
-    if ($valid_castle == Chess::Game::MOVE_CASTLE_SHORT) {
-        my $tsq = Chess::Board->square_right_of($sq1);
+        if ($valid_castle == Chess::Game::MOVE_CASTLE_SHORT) {
+            my $tsq = Chess::Board->square_right_of($sq1);
+                $clone->make_move($sq1, $tsq, 0);
+            Chess::Game::_mark_threatened_kings($r_clone);
+            unless (!$king->threatened()) {
+                $obj_data->{message} = "Can't castle through check";
+                return 0;
+            }
+            $clone->make_move($tsq, $sq2, 0);
+            Chess::Game::_mark_threatened_kings($r_clone);
+            unless (!$king->threatened()) {
+                $obj_data->{message} = "Move leaves your king in check";
+                return 0;
+            }
+        }
+        else {
+            my $tsq = Chess::Board->square_left_of($sq1);
             $clone->make_move($sq1, $tsq, 0);
-        Chess::Game::_mark_threatened_kings($r_clone);
-        unless (!$king->threatened()) {
-        $obj_data->{message} = "Can't castle through check";
-        return 0;
+            Chess::Game::_mark_threatened_kings($r_clone);
+            unless (!$king->threatened()) {
+                $obj_data->{message} = "Can't castle through check";
+                return 0;
+            }
+            $clone->make_move($tsq, $sq2, 0);
+            Chess::Game::_mark_threatened_kings($r_clone);
+            unless (!$king->threatened()) {
+                $obj_data->{message} = "Move leaves your king in check";
+                return 0;
+            }
         }
-        $clone->make_move($tsq, $sq2, 0);
-        Chess::Game::_mark_threatened_kings($r_clone);
-        unless (!$king->threatened()) {
-        $obj_data->{message} = "Move leaves your king in check";
-        return 0;
-        }
-    }
-    else {
-        my $tsq = Chess::Board->square_left_of($sq1);
-        $clone->make_move($sq1, $tsq, 0);
-        Chess::Game::_mark_threatened_kings($r_clone);
-        unless (!$king->threatened()) {
-        $obj_data->{message} = "Can't castle through check";
-        return 0;
-        }
-        $clone->make_move($tsq, $sq2, 0);
-        Chess::Game::_mark_threatened_kings($r_clone);
-        unless (!$king->threatened()) {
-        $obj_data->{message} = "Move leaves your king in check";
-        return 0;
-        }
-    }
     }
     $obj_data->{message} = '';
     return 1;
 }
 
-sub _whoami {
+sub _who_is {
     my $piece = shift;
-    my $square = $piece->get_current_square();
-    my $name = ref $piece;
-    $name =~ s/^(?:\w+::)+(.*)$/lc($1)/e;
+    (my $name = ref $piece) =~ s/^(?:\w+::)+(.*)$/lc($1)/e;
     return wantarray
-        ? ( $square, $piece->get_player(), $name )
-        : join ' ', $square, $piece->get_player(), $name;
+        ? ($piece->get_current_square(), $piece->get_player(), $name)
+        : join ' ', $piece->get_current_square(), $piece->get_player(), $name;
     
 }
 
@@ -244,7 +260,7 @@ __END__
 
 =head1 NAME
 
-Chess::Coverage - Visualize the potential energy between chess moves
+Chess::Coverage - Expose chess ply potential energy
 
 =head1 SYNOPSIS
 
@@ -262,16 +278,14 @@ C<Games::Chess::Coverage> modules based on the new C<Chess> module.
 
 =head2 new
 
-Return a new C<Chess::Coverage> object which inherits from the
-C<Chess> module.
+Return a new C<Chess::Coverage> object that is an inherited C<Chess>
+module.
 
 =head1 TO DO
 
 Almost everything...
 
-$i = $g->image();    # get the image object
-
-$g->draw();          # vizualize the board
+$i = $g->image(); # get the image object
 
 =head1 SEE ALSO
 
@@ -283,6 +297,7 @@ Gene Boggs E<lt>gene@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright 2007, Gene Boggs Licensed under the same terms as Perl itself.
+Copyright 2007, Gene Boggs.
+This code is licensed under the same terms as Perl itself.
 
 =cut
