@@ -2,12 +2,11 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
-
 WriteMakefile(
     NAME => 'Chess::Coverage',
     VERSION_FROM => 'lib/Chess/Coverage.pm',
     PREREQ_PM => {
-        'Chess' => 0,
+        'Chess::Rep' => 0,
     },
     ($] >= 5.005
         ? (ABSTRACT_FROM => 'lib/Chess/Coverage.pm',

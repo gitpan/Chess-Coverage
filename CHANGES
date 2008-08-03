@@ -1,5 +1,10 @@
 Changes file for Chess::Coverage
 
+0.01 2008.08.02
+    - Scrapped everything but the interface when I saw that the
+      Chess::Rep module could do what I wanted with less code and in
+      about 1/5th the execution speed.
+
 0.00_4 2007.07.02
     - Fixed the coverage() function.
 

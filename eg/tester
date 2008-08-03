@@ -4,6 +4,6 @@ use warnings;
 use Chess::Coverage;
 my $g = Chess::Coverage->new();
 my $c = $g->coverage(
-#    pgn => 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3',
+    pgn => 'r1b1k1nr/pp1ppppp/8/2pP4/3b4/8/PPP1PqPP/RNBQKBNR w KQkq - 0 1'
 );
 use Data::Dumper;$Data::Dumper::Sortkeys=1;die Dumper($c);
