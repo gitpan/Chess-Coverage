@@ -1,5 +1,14 @@
 Changes file for Chess::Coverage
 
+0.04 2008.08.03
+    - Cleaned syntax and optimized looping a bit.
+    - Made the test actually test coverage.
+
+0.03 2008.08.03
+    - Improved the occupant naming.
+    - Replaced _get_allowed_moves() with map grep status().
+    - print, not die in eg/tester.
+
 0.02 2008.08.02
     - Refactored to accommodate the new Chess::Rep API.
     - Fixed the constructor FEN in eg/tester.

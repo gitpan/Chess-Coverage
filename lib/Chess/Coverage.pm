@@ -1,16 +1,13 @@
-# $Id: Coverage.pm 902 2008-08-03 06:45:35Z gene $
+# $Id: Coverage.pm 907 2008-08-03 18:27:40Z gene $
 
 package Chess::Coverage;
-our $VERSION = '0.02';
+our $VERSION = '0.04';
 use strict;
 use warnings;
 use base 'Chess::Rep';
 
 sub coverage {
     my $self = shift;
-
-    my %cover = ();
-
     my %name = (
         0x01 => 'black pawn',
         0x02 => 'black knight',
@@ -26,36 +23,35 @@ sub coverage {
         0xA0 => 'white queen',
     );
 
+    my $cover = {};
+
+    my $status = $self->status->{moves};
+
     for my $row (0 .. 7) {
         for my $col (0 .. 7) {
             my $i = Chess::Rep::get_index($row, $col);
-            my $p = $name{ $self->get_piece_at($row, $col) } || '';
             my $f = Chess::Rep::get_field_id($i);
+            my $c = $self->piece_color($i);
+            my $p = $self->get_piece_at($row, $col) || '';
 
-            $cover{$f}{index} = $i;
+            $cover->{$f}{index} = $i;
 
             my $moves = [];
 
             if ($p) {
-                $cover{$f}{occupant} = $p;
-                $moves = $self->_get_allowed_moves($i);
-            }
-
-            if (@$moves) {
-                @$moves = map { Chess::Rep::get_field_id($_) } @$moves;
-                $cover{$f}{move} = $moves;
+                $cover->{$f}{occupant} = $name{$p} .' '. $p;
+                $moves = [ map { $_->{to} } grep { $_->{from} == $i } @$status ];
+                $cover->{$f}{move} = $moves if @$moves;
             }
 
             for my $color (0, 0x80) {
-                if($p && $self->is_attacked($i, $color)) {
-                    my $c = $self->piece_color($i);
-                    $cover{$f}{ $c == $color ? 'protected' : 'threatened' } = 1;;
-                }
+                $cover->{$f}{ $c == $color ? 'protected' : 'threatened' }++
+                    if $p && $self->is_attacked($i, $color);
             }
         }
     }
 
-    return \%cover;
+    return $cover;
 }
 
 1;
@@ -105,7 +101,7 @@ Return a data structure, keyed on board position, showing
 
 =head1 TO DO
 
-Get C<Chess::Rep> patched to return the indices of the attackers.
+Get C<Chess::Rep> to return the indices of the attackers.
 
 Produce images and animations of the coverage.
 
