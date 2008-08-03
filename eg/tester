@@ -2,8 +2,8 @@
 use strict;
 use warnings;
 use Chess::Coverage;
-my $g = Chess::Coverage->new();
-my $c = $g->coverage(
-    pgn => 'r1b1k1nr/pp1ppppp/8/2pP4/3b4/8/PPP1PqPP/RNBQKBNR w KQkq - 0 1'
+my $g = Chess::Coverage->new(
+    'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2'
 );
+my $c = $g->coverage();
 use Data::Dumper;$Data::Dumper::Sortkeys=1;die Dumper($c);

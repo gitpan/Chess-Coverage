@@ -1,5 +1,13 @@
 Changes file for Chess::Coverage
 
+0.02 2008.08.02
+    - Refactored to accommodate the new Chess::Rep API.
+    - Fixed the constructor FEN in eg/tester.
+
+0.01 2008.08.02
+    - Fixed the moves array computation, a bit.
+    - Forgot the crucial, final 1; # Oops!
+
 0.01 2008.08.02
     - Scrapped everything but the interface when I saw that the
       Chess::Rep module could do what I wanted with less code and in
