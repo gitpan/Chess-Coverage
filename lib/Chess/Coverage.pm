@@ -1,58 +1,7 @@
-# $Id: Coverage.pm 907 2008-08-03 18:27:40Z gene $
+# $Id: Coverage.pm 910 2008-08-06 02:34:52Z gene $
 
 package Chess::Coverage;
-our $VERSION = '0.04';
-use strict;
-use warnings;
-use base 'Chess::Rep';
-
-sub coverage {
-    my $self = shift;
-    my %name = (
-        0x01 => 'black pawn',
-        0x02 => 'black knight',
-        0x04 => 'black king',
-        0x08 => 'black bishop',
-        0x10 => 'black rook',
-        0x20 => 'black queen',
-        0x81 => 'white pawn',
-        0x82 => 'white knight',
-        0x84 => 'white king',
-        0x88 => 'white bishop',
-        0x90 => 'white rook',
-        0xA0 => 'white queen',
-    );
-
-    my $cover = {};
-
-    my $status = $self->status->{moves};
-
-    for my $row (0 .. 7) {
-        for my $col (0 .. 7) {
-            my $i = Chess::Rep::get_index($row, $col);
-            my $f = Chess::Rep::get_field_id($i);
-            my $c = $self->piece_color($i);
-            my $p = $self->get_piece_at($row, $col) || '';
-
-            $cover->{$f}{index} = $i;
-
-            my $moves = [];
-
-            if ($p) {
-                $cover->{$f}{occupant} = $name{$p} .' '. $p;
-                $moves = [ map { $_->{to} } grep { $_->{from} == $i } @$status ];
-                $cover->{$f}{move} = $moves if @$moves;
-            }
-
-            for my $color (0, 0x80) {
-                $cover->{$f}{ $c == $color ? 'protected' : 'threatened' }++
-                    if $p && $self->is_attacked($i, $color);
-            }
-        }
-    }
-
-    return $cover;
-}
+our $VERSION = '0.04_1';
 
 1;
 
@@ -60,54 +9,11 @@ __END__
 
 =head1 NAME
 
-Chess::Coverage - Expose chess ply potential energy
+Chess::Coverage - Expose chess ply potential energy - MOVED
 
-=head1 SYNOPSIS
+=head1 PLEASE SEE
 
-  use Chess::Coverage;
-  $g = Chess::Coverage->new();
-  $c = $g->coverage();
-
-=head1 DESCRTIPTION
-
-This module exposes the "potential energy" of a chess ply by returning
-a hash reference of the board positions, pieces and their "attack
-status."
-
-* This module was a lot more complicated and slower, in the past.
-Modern chess packages have allowed me to vastly simplify this (to a
-single method, actually).
-
-* Previous versions of this module B<listed> the board positions that
-threatened or protected a given position.  This module does the
-reverse (for the moment) and shows if positions are threatened or
-protected with a simple true value.
-
-=head1 METHODS
-
-=head2 new()
-
-Return a new C<Chess::Coverage> object.
-
-=head2 coverage()
-
-Return a data structure, keyed on board position, showing
-
-  occupant   => Human readable string of the piece name and color
-  index      => The C<Chess::Rep/Position> board position index.
-  move       => List of positions that are legal moves by the occupying piece
-  protected  => True (1) if the occupying piece is protected by its own color
-  threatened => True (1) if the occupying piece is threatened by the opponent
-
-=head1 TO DO
-
-Get C<Chess::Rep> to return the indices of the attackers.
-
-Produce images and animations of the coverage.
-
-=head1 SEE ALSO
-
-L<Chess::Rep>
+L<Chess::Rep::Coverage>
 
 =head1 AUTHOR
 

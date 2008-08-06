@@ -1,5 +1,8 @@
 Changes file for Chess::Coverage
 
+0.04_1 2008.08.04
+    - This is a subclass of Chess::Rep, not its own thing.
+
 0.04 2008.08.03
     - Cleaned syntax and optimized looping a bit.
     - Made the test actually test coverage.
